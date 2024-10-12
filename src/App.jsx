@@ -7,6 +7,7 @@ import { saveAs } from 'file-saver';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { marked } from 'marked';
+import html2pdf from 'html2pdf'
 
 const App = () => {
   const [text, setText] = useState('');
@@ -18,10 +19,12 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false); // Track loading state
   const [totalWordCount, setTotalWordCount] = useState(0); // Store total word count
 
+  // Function to get the content for the currently active tab
   const getTabContent = (index) => {
     return apiResponseParts[index] || ''; // Return the content of the selected tab
   };
 
+  // Function to generate content based on user input
   const generateInfo = async () => {
     const userMessage = `<div class="message">${text}</div>`;
     setMessages((prev) => [...prev, userMessage]);
@@ -143,7 +146,7 @@ const App = () => {
         setTabNames(prevNames => [...prevNames, additionalStrongText || 'Part 5']); // Set the name or default to 'Part 5'
       }
 
-      // Clear previous navbar content
+      // Clear previous navbar content and extract new headings
       const newHeadings = extractHeadings(apiResponse);
       setHeadings(newHeadings);
       
@@ -154,6 +157,7 @@ const App = () => {
     }
   };
 
+  // Function to extract headings from HTML content
   const extractHeadings = (html) => {
     const headings = [];
     const parser = new DOMParser();
@@ -170,6 +174,7 @@ const App = () => {
     return headings;
   };
 
+  // Function to clear responses and reset state
   const clearResponse = () => {
     setMessages([]);
     setHeadings([]);
@@ -178,16 +183,57 @@ const App = () => {
     setTotalWordCount(0); // Reset total word count
   };
 
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    html2canvas(document.getElementById("card")).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png');
-      doc.addImage(imgData, 'PNG', 0, 0);
-      doc.save('response.pdf');
-    });
-  };
+  // Function to export content to PDF
 
-  const exportToWord = () => {
+
+  const onExportPDF = () => {
+    const doc = new jsPDF('p', 'mm', 'a4'); // Create a new jsPDF document
+  
+    // Set margin and page configurations
+    const leftMargin = 10;
+    const lineHeight = 10;
+    let yPosition = 20; // Start at 20mm from the top
+  
+    // Add title or custom header if necessary
+    doc.setFontSize(14);
+    doc.text("Generated API Response", leftMargin, yPosition);
+    yPosition += 10;
+  
+    // Loop through each part of the API response and add to the PDF
+    apiResponseParts.forEach((part, index) => {
+      if (part) {
+        // Add the tab name as a heading
+        doc.setFontSize(12);
+        doc.text(`${tabNames[index] || `Part ${index + 1}`}`, leftMargin, yPosition);
+        yPosition += 10;
+  
+        // Convert the HTML-formatted content from Marked to plain text
+        const parser = new DOMParser();
+        const htmlDoc = parser.parseFromString(part, 'text/html');
+        const plainText = htmlDoc.body.innerText; // Extract plain text from the HTML
+  
+        // Split the text into lines that fit into the PDF
+        const lines = doc.splitTextToSize(plainText, 180); // Adjust 180 for width of page content
+        lines.forEach(line => {
+          if (yPosition + lineHeight > 280) {
+            // Add a new page if content exceeds page height
+            doc.addPage();
+            yPosition = 20;
+          }
+          doc.text(line, leftMargin, yPosition);
+          yPosition += lineHeight;
+        });
+  
+        yPosition += 10; // Add some space before the next part
+      }
+    });
+  
+    // Save the PDF document
+    doc.save('response.pdf');
+  };
+      
+  // Function to export content to Word document
+  const onExportWord = () => {
     // Prepare the full content from all tabs in the apiResponseParts
     let content = `
       <html>
@@ -259,8 +305,8 @@ const App = () => {
       <InputContainer 
         onGenerate={generateInfo} 
         onClear={clearResponse} 
-        onExportPDF={exportToPDF} 
-        onExportWord={exportToWord} 
+        onExportPDF={onExportPDF} 
+        onExportWord={onExportWord} 
         text={text} 
         setText={setText} 
       />
