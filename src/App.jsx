@@ -31,7 +31,7 @@ const App = () => {
     setMessages((prev) => [...prev, userMessage]);
     setText('');
     setIsLoading(true); // Start loading
-
+  
     const data = {
       contents: [
         {
@@ -43,7 +43,7 @@ const App = () => {
         },
       ],
     };
-
+  
     try {
       const response = await fetch(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyCaT_uul8cwbfsRF-DZsW6P0YWl_FgXodg",
@@ -55,109 +55,73 @@ const App = () => {
           body: JSON.stringify(data),
         }
       );
-
+  
       const result = await response.json();
       const apiResponse = result.candidates[0].content.parts[0].text;
-
-      // Divide the response into 4 equal parts without breaking words
-      const partLength = Math.ceil(apiResponse.length / 4);
+  
+      // Parse the API response using the marked library
+      const formattedResponse = marked(apiResponse);
+  
+      // Use DOMParser to parse the formatted response into HTML
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(formattedResponse, 'text/html');
+      
+      // Find all <p> tags with <strong> styling
+      const strongParagraphs = doc.querySelectorAll('p strong');
+      
+      // Initialize variables to store parts and names
       const parts = [];
-      let startIndex = 0;
+      const names = [];
+  
+      strongParagraphs.forEach((strongElement, index) => {
+        const parentParagraph = strongElement.closest('p');
+        const nextParagraph = parentParagraph.nextElementSibling;
+        const content = nextParagraph ? nextParagraph.outerHTML : '';
+        
+        // Count words in the strong text
+        const strongText = strongElement.innerText.trim();
+        const wordCount = strongText.split(/\s+/).filter(word => word.length > 0).length;
 
-      for (let i = 0; i < 4; i++) {
-        let endIndex = startIndex + partLength;
-
-        // Ensure we don't exceed the string length
-        if (endIndex >= apiResponse.length) {
-          endIndex = apiResponse.length;
+        // Check the word count to decide how to store the content
+        if (wordCount <= 5) {
+          parts.push(content);
+          names.push(strongText); // Only push name if it's <= 5 words
         } else {
-          // Adjust endIndex to the last complete word
-          while (endIndex > startIndex && apiResponse[endIndex] !== ' ') {
-            endIndex--;
+          // If > 5 words, push the content to the last part only
+          if (parts.length > 0) {
+            parts[parts.length - 1] += content; // Append to the last part
+          } else {
+            parts.push(content); // If no previous parts, just add
           }
         }
-
-        // Push the part and update the start index
-        parts.push(apiResponse.slice(startIndex, endIndex).trim());
-        startIndex = endIndex + 1; // Move to the next character after the space
+      });
+  
+      // If no parts created, handle default case
+      if (parts.length === 0) {
+        parts.push('No content generated.');
+        names.push('Part 1');
       }
-
+  
       // Store the formatted parts in state
-      const formattedParts = parts.map(part => marked(part)); // Format with marked
-      setApiResponseParts(formattedParts); 
-
+      const formattedParts = parts.map(part => marked(part));
+      setApiResponseParts(formattedParts);
+      setTabNames(names);
+  
       // Calculate total word count
       const totalCount = formattedParts.reduce((acc, part) => acc + part.split(/\s+/).filter(word => word.length > 0).length, 0);
       setTotalWordCount(totalCount); // Update the total word count
-
-      // Set dynamic tab names
-      const names = parts.map((part, index) => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(marked(part), 'text/html');
-        
-        if (index === 0) {
-          // Get the <h2> content for the first tab name
-          const h2Element = doc.querySelector('h2');
-          return h2Element ? h2Element.innerText.trim() : 'Part 1'; // Default to 'Part 1' if no <h2> is found
-        } else {
-          // Find the first <p> that contains <strong> for subsequent tabs
-          const strongElement = doc.querySelector('p strong');
-          const strongText = strongElement ? strongElement.innerText.trim() : '';
-          return strongText || `Part ${index + 1}`; // Default to 'Part X' if no <strong> is found
-        }
-      });
-      setTabNames(names);
-
-      // If total word count exceeds 500, generate additional content for the fifth tab
-      if (totalCount > 500) {
-        const additionalData = {
-          contents: [
-            {
-              parts: [
-                {
-                  text: "Generate additional content because word count exceeded 500 words.",
-                },
-              ],
-            },
-          ],
-        };
-
-        const additionalResponse = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyCaT_uul8cwbfsRF-DZsW6P0YWl_FgXodg",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(additionalData),
-          }
-        );
-
-        const additionalResult = await additionalResponse.json();
-        const additionalApiResponse = additionalResult.candidates[0].content.parts[0].text;
-
-        // Store additional content in fifth tab
-        const additionalFormattedContent = marked(additionalApiResponse);
-        setApiResponseParts(prevParts => [...prevParts, additionalFormattedContent]); // Add fifth tab content
-
-        // Determine the tab name for the fifth tab
-        const additionalDoc = new DOMParser().parseFromString(additionalFormattedContent, 'text/html');
-        const additionalStrongElement = additionalDoc.querySelector('p strong');
-        const additionalStrongText = additionalStrongElement ? additionalStrongElement.innerText.trim() : '';
-        setTabNames(prevNames => [...prevNames, additionalStrongText || 'Part 5']); // Set the name or default to 'Part 5'
-      }
-
+  
       // Clear previous navbar content and extract new headings
       const newHeadings = extractHeadings(apiResponse);
       setHeadings(newHeadings);
-      
+  
     } catch (error) {
       console.error("Error:", error);
     } finally {
       setIsLoading(false); // Stop loading regardless of success or error
     }
-  };
-
+};
+    
   // Function to extract headings from HTML content
   const extractHeadings = (html) => {
     const headings = [];
