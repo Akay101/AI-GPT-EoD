@@ -16,6 +16,7 @@ const App = () => {
   const [tabNames, setTabNames] = useState(['', '', '', '']); // Store dynamic tab names
   const [activeTab, setActiveTab] = useState(0); // Track active tab
   const [isLoading, setIsLoading] = useState(false); // Track loading state
+  const [totalWordCount, setTotalWordCount] = useState(0); // Store total word count
 
   const getTabContent = (index) => {
     return apiResponseParts[index] || ''; // Return the content of the selected tab
@@ -78,14 +79,26 @@ const App = () => {
       }
 
       // Store the formatted parts in state
-      setApiResponseParts(parts.map(part => marked(part))); // Format with marked
+      const formattedParts = parts.map(part => marked(part)); // Format with marked
+      setApiResponseParts(formattedParts); 
 
-      // Set dynamic tab names based on the first valid word of each part
+      // Calculate total word count
+      const totalCount = formattedParts.reduce((acc, part) => acc + part.split(/\s+/).filter(word => word.length > 0).length, 0);
+      setTotalWordCount(totalCount); // Update the total word count
+
+      // Set dynamic tab names based on <p><strong> content
       const names = parts.map(part => {
-        // Extract the first word and remove any non-alphabetic characters
-        const firstWord = part.split(' ')[0].replace(/[^a-zA-Z]/g, '');
+        // Parse the HTML content
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(marked(part), 'text/html');
+        
+        // Find the first <p> that contains <strong>
+        const strongElement = doc.querySelector('p strong');
 
-        return firstWord || 'Part'; // Default to 'Part' if the word is empty after cleaning
+        // Extract the strong content or default to 'Part'
+        const strongText = strongElement ? strongElement.innerText.trim() : '';
+
+        return strongText || 'Part'; // Default to 'Part' if no <strong> is found
       });
       setTabNames(names);
 
@@ -121,6 +134,7 @@ const App = () => {
     setHeadings([]);
     setApiResponseParts([null, null, null, null]);
     setTabNames(['', '', '', '']); // Clear tab names
+    setTotalWordCount(0); // Reset total word count
   };
 
   const exportToPDF = () => {
@@ -163,6 +177,9 @@ const App = () => {
               <div>${part}</div>
             </div>
           `).join('')}
+          <div style="margin-top: 30px;">
+            <h5>Total Word Count: ${totalWordCount}</h5>
+          </div>
         </body>
       </html>
     `;
@@ -173,7 +190,7 @@ const App = () => {
     });
     saveAs(blob, 'response.doc');
   };
-  
+
   return (
     <div>
       <Navbar />
@@ -193,7 +210,15 @@ const App = () => {
           {isLoading ? (
             <div className="loader show"></div> // Show loader if loading
           ) : (
-            <div dangerouslySetInnerHTML={{ __html: getTabContent(activeTab) }} />
+            <>
+              <div dangerouslySetInnerHTML={{ __html: getTabContent(activeTab) }} />
+              {/* Show total word count only in the fourth tab */}
+              {activeTab === 3 && (
+                <div className="total-word-count">
+                  <h5>Total Word Count: {totalWordCount}</h5>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

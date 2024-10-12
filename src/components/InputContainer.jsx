@@ -14,9 +14,9 @@ const InputContainer = ({ onGenerate, onClear, onExportPDF, onExportWord, text, 
       <button type="button" onClick={onGenerate}>
         <i className="fa-solid fa-arrow-up"></i>
       </button>
-      <button type="button" onClick={onClear} id="clear-response">Clear</button>
-      <button type="button" onClick={onExportPDF}>Export to PDF</button>
-      <button type="button" onClick={onExportWord}>Export to Word</button>
+      <button type="button" onClick={onClear} id="clear-response"><i class="fa-solid fa-delete-left"></i></button>
+      <button type="button" onClick={onExportPDF}><i class="fa-solid fa-file-pdf"></i></button>
+      <button type="button" onClick={onExportWord}><i class="fa-solid fa-file-word"></i></button>
     </div>
   );
 };
