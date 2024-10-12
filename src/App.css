@@ -19,7 +19,7 @@ body {
   background-color: #202021;
   background-image: url('../src/assets/bg.jpg');
   background-size: cover;
-  background-position: center center;
+  background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
   display: flex;
@@ -28,6 +28,7 @@ body {
   align-items: center;
   min-height: 100vh;
   padding: 20px;
+  height: 100vh;
 }
 
 .card {
@@ -208,7 +209,7 @@ body {
 
 /* Style for tab navigation */
 .tab-container {
-  background-color: white; /* Set background color for the tab area */
+  background-color: #243642; /* Set background color for the tab area */
   color: black; /* Set text color for the tab area */
   padding: 10px; /* Optional: Add padding for aesthetics */
   border-radius: 5px; /* Optional: Add rounded corners */
@@ -238,8 +239,8 @@ body {
 
 /* Style for tab content */
 .tab-content {
-  background-color: white; /* Background for tab content */
-  color: black; /* Text color for tab content */
+  background-color: black; /* Background for tab content */
+  color: white; /* Text color for tab content */
   width: 1400px; /* Set a fixed width for the content area */
   height: 300px; /* Set a fixed height for the content area */
   overflow-y: auto; /* Enable vertical scrolling */
