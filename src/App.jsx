@@ -86,21 +86,62 @@ const App = () => {
       const totalCount = formattedParts.reduce((acc, part) => acc + part.split(/\s+/).filter(word => word.length > 0).length, 0);
       setTotalWordCount(totalCount); // Update the total word count
 
-      // Set dynamic tab names based on <p><strong> content
-      const names = parts.map(part => {
-        // Parse the HTML content
+      // Set dynamic tab names
+      const names = parts.map((part, index) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(marked(part), 'text/html');
         
-        // Find the first <p> that contains <strong>
-        const strongElement = doc.querySelector('p strong');
-
-        // Extract the strong content or default to 'Part'
-        const strongText = strongElement ? strongElement.innerText.trim() : '';
-
-        return strongText || 'Part'; // Default to 'Part' if no <strong> is found
+        if (index === 0) {
+          // Get the <h2> content for the first tab name
+          const h2Element = doc.querySelector('h2');
+          return h2Element ? h2Element.innerText.trim() : 'Part 1'; // Default to 'Part 1' if no <h2> is found
+        } else {
+          // Find the first <p> that contains <strong> for subsequent tabs
+          const strongElement = doc.querySelector('p strong');
+          const strongText = strongElement ? strongElement.innerText.trim() : '';
+          return strongText || `Part ${index + 1}`; // Default to 'Part X' if no <strong> is found
+        }
       });
       setTabNames(names);
+
+      // If total word count exceeds 500, generate additional content for the fifth tab
+      if (totalCount > 500) {
+        const additionalData = {
+          contents: [
+            {
+              parts: [
+                {
+                  text: "Generate additional content because word count exceeded 500 words.",
+                },
+              ],
+            },
+          ],
+        };
+
+        const additionalResponse = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyCaT_uul8cwbfsRF-DZsW6P0YWl_FgXodg",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(additionalData),
+          }
+        );
+
+        const additionalResult = await additionalResponse.json();
+        const additionalApiResponse = additionalResult.candidates[0].content.parts[0].text;
+
+        // Store additional content in fifth tab
+        const additionalFormattedContent = marked(additionalApiResponse);
+        setApiResponseParts(prevParts => [...prevParts, additionalFormattedContent]); // Add fifth tab content
+
+        // Determine the tab name for the fifth tab
+        const additionalDoc = new DOMParser().parseFromString(additionalFormattedContent, 'text/html');
+        const additionalStrongElement = additionalDoc.querySelector('p strong');
+        const additionalStrongText = additionalStrongElement ? additionalStrongElement.innerText.trim() : '';
+        setTabNames(prevNames => [...prevNames, additionalStrongText || 'Part 5']); // Set the name or default to 'Part 5'
+      }
 
       // Clear previous navbar content
       const newHeadings = extractHeadings(apiResponse);
@@ -132,7 +173,7 @@ const App = () => {
   const clearResponse = () => {
     setMessages([]);
     setHeadings([]);
-    setApiResponseParts([null, null, null, null]);
+    setApiResponseParts([null, null, null, null]); // Reset to initial state
     setTabNames(['', '', '', '']); // Clear tab names
     setTotalWordCount(0); // Reset total word count
   };
@@ -210,15 +251,7 @@ const App = () => {
           {isLoading ? (
             <div className="loader show"></div> // Show loader if loading
           ) : (
-            <>
-              <div dangerouslySetInnerHTML={{ __html: getTabContent(activeTab) }} />
-              {/* Show total word count only in the fourth tab */}
-              {activeTab === 3 && (
-                <div className="total-word-count">
-                  <h5>Total Word Count: {totalWordCount}</h5>
-                </div>
-              )}
-            </>
+            <div dangerouslySetInnerHTML={{ __html: getTabContent(activeTab) }} />
           )}
         </div>
       </div>
