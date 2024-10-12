@@ -80,10 +80,12 @@ const App = () => {
       // Store the formatted parts in state
       setApiResponseParts(parts.map(part => marked(part))); // Format with marked
 
-      // Set dynamic tab names based on the first word of each part
+      // Set dynamic tab names based on the first valid word of each part
       const names = parts.map(part => {
-        const firstWord = part.split(' ')[0]; // Get the first word
-        return firstWord || 'Part'; // Default to 'Part' if part is empty
+        // Extract the first word and remove any non-alphabetic characters
+        const firstWord = part.split(' ')[0].replace(/[^a-zA-Z]/g, '');
+
+        return firstWord || 'Part'; // Default to 'Part' if the word is empty after cleaning
       });
       setTabNames(names);
 
@@ -130,47 +132,47 @@ const App = () => {
     });
   };
 
-const exportToWord = () => {
-  // Prepare the full content from all tabs in the apiResponseParts
-  let content = `
-    <html>
-      <head>
-        <style>
-          /* Add some styling to format the Word document */
-          body {
-            font-family: Arial, sans-serif;
-          }
-          h5 {
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-top: 20px;
-          }
-          .message {
-            margin: 10px 0;
-          }
-          .tab-section {
-            margin-top: 30px;
-          }
-        </style>
-      </head>
-      <body>
-        ${messages.map(message => `<div class="message">${message}</div>`).join('')}
-        ${apiResponseParts.map((part, index) => `
-          <div class="tab-section">
-            <h5>${tabNames[index] || `Part ${index + 1}`}</h5>
-            <div>${part}</div>
-          </div>
-        `).join('')}
-      </body>
-    </html>
-  `;
+  const exportToWord = () => {
+    // Prepare the full content from all tabs in the apiResponseParts
+    let content = `
+      <html>
+        <head>
+          <style>
+            /* Add some styling to format the Word document */
+            body {
+              font-family: Arial, sans-serif;
+            }
+            h5 {
+              font-size: 1.2em;
+              font-weight: bold;
+              margin-top: 20px;
+            }
+            .message {
+              margin: 10px 0;
+            }
+            .tab-section {
+              margin-top: 30px;
+            }
+          </style>
+        </head>
+        <body>
+          ${messages.map(message => `<div class="message">${message}</div>`).join('')}
+          ${apiResponseParts.map((part, index) => `
+            <div class="tab-section">
+              <h5>${tabNames[index] || `Part ${index + 1}`}</h5>
+              <div>${part}</div>
+            </div>
+          `).join('')}
+        </body>
+      </html>
+    `;
 
-  // Create a Blob with the content and save it as a Word document
-  const blob = new Blob(['\ufeff', content], {
-    type: 'application/msword'
-  });
-  saveAs(blob, 'response.doc');
-};
+    // Create a Blob with the content and save it as a Word document
+    const blob = new Blob(['\ufeff', content], {
+      type: 'application/msword'
+    });
+    saveAs(blob, 'response.doc');
+  };
   
   return (
     <div>
