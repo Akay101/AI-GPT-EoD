@@ -33,92 +33,105 @@ const App = () => {
     setIsLoading(true); // Start loading
   
     const data = {
-      contents: [
-        {
-          parts: [
+        contents: [
             {
-              text: text,
+                parts: [
+                    {
+                        text: text,
+                    },
+                ],
             },
-          ],
-        },
-      ],
+        ],
     };
-  
-    try {
-      const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyCaT_uul8cwbfsRF-DZsW6P0YWl_FgXodg",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        }
-      );
-  
-      const result = await response.json();
-      const apiResponse = result.candidates[0].content.parts[0].text;
-  
-      // Parse the API response using the marked library
-      const formattedResponse = marked(apiResponse);
-  
-      // Use DOMParser to parse the formatted response into HTML
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(formattedResponse, 'text/html');
-      
-      // Find all <p> tags with <strong> styling
-      const strongParagraphs = doc.querySelectorAll('p strong');
-      
-      // Initialize variables to store parts and names
-      const parts = [];
-      const names = [];
-  
-      strongParagraphs.forEach((strongElement, index) => {
-        const parentParagraph = strongElement.closest('p');
-        const nextParagraph = parentParagraph.nextElementSibling;
-        const content = nextParagraph ? nextParagraph.outerHTML : '';
-        
-        // Count words in the strong text
-        const strongText = strongElement.innerText.trim();
-        const wordCount = strongText.split(/\s+/).filter(word => word.length > 0).length;
 
-        // Check the word count to decide how to store the content
-        if (wordCount <= 5) {
-          parts.push(content);
-          names.push(strongText); // Only push name if it's <= 5 words
-        } else {
-          // If > 5 words, push the content to the last part only
-          if (parts.length > 0) {
-            parts[parts.length - 1] += content; // Append to the last part
-          } else {
-            parts.push(content); // If no previous parts, just add
-          }
+    try {
+        const response = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyCaT_uul8cwbfsRF-DZsW6P0YWl_FgXodg",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            }
+        );
+
+        const result = await response.json();
+        const apiResponse = result.candidates[0].content.parts[0].text;
+
+        // Count the total number of words in the API response
+        const totalWords = apiResponse.split(/\s+/).filter(word => word.length > 0).length;
+
+        // Check if the total word count is less than 25
+        if (totalWords < 25) {
+            // Directly set the response as a single entry
+            setApiResponseParts([marked(apiResponse)]);
+            setTabNames(['Response']); // Single tab name
+            setTotalWordCount(totalWords); // Set total word count
+            setIsLoading(false); // Stop loading
+            return; // Exit the function
         }
-      });
-  
-      // If no parts created, handle default case
-      if (parts.length === 0) {
-        parts.push('No content generated.');
-        names.push('Part 1');
-      }
-  
-      // Store the formatted parts in state
-      const formattedParts = parts.map(part => marked(part));
-      setApiResponseParts(formattedParts);
-      setTabNames(names);
-  
-      // Calculate total word count
-      const totalCount = formattedParts.reduce((acc, part) => acc + part.split(/\s+/).filter(word => word.length > 0).length, 0);
-      setTotalWordCount(totalCount); // Update the total word count
-  
-      // Clear previous navbar content and extract new headings
-      const newHeadings = extractHeadings(apiResponse);
-      setHeadings(newHeadings);
-  
+
+        // Parse the API response using the marked library
+        const formattedResponse = marked(apiResponse);
+
+        // Use DOMParser to parse the formatted response into HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(formattedResponse, 'text/html');
+
+        // Find all <p> tags with <strong> styling
+        const strongParagraphs = doc.querySelectorAll('p strong');
+
+        // Initialize variables to store parts and names
+        const parts = [];
+        const names = [];
+
+        strongParagraphs.forEach((strongElement) => {
+            const parentParagraph = strongElement.closest('p');
+            const nextParagraph = parentParagraph.nextElementSibling;
+            const content = nextParagraph ? nextParagraph.outerHTML : '';
+
+            // Count words in the strong text
+            const strongText = strongElement.innerText.trim();
+            const wordCount = strongText.split(/\s+/).filter(word => word.length > 0).length;
+
+            // Check the word count to decide how to store the content
+            if (wordCount <= 5) {
+                parts.push(content);
+                names.push(strongText); // Only push name if it's <= 5 words
+            } else {
+                // If > 5 words, push the content to the last part only
+                if (parts.length > 0) {
+                    parts[parts.length - 1] += content; // Append to the last part
+                } else {
+                    parts.push(content); // If no previous parts, just add
+                }
+            }
+        });
+
+        // If no parts created, handle default case
+        if (parts.length === 0) {
+            parts.push('No content generated.');
+            names.push('Part 1');
+        }
+
+        // Store the formatted parts in state
+        const formattedParts = parts.map(part => marked(part));
+        setApiResponseParts(formattedParts);
+        setTabNames(names);
+
+        // Calculate total word count
+        const totalCount = formattedParts.reduce((acc, part) => acc + part.split(/\s+/).filter(word => word.length > 0).length, 0);
+        setTotalWordCount(totalCount); // Update the total word count
+
+        // Clear previous navbar content and extract new headings
+        const newHeadings = extractHeadings(apiResponse);
+        setHeadings(newHeadings);
+
     } catch (error) {
-      console.error("Error:", error);
+        console.error("Error:", error);
     } finally {
-      setIsLoading(false); // Stop loading regardless of success or error
+        setIsLoading(false); // Stop loading regardless of success or error
     }
 };
     

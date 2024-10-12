@@ -258,23 +258,37 @@ body {
 
 /* Loader styles */
 .loader {
-  border: 8px solid #f3f3f3; /* Light grey */
-  border-top: 8px solid #3498db; /* Blue */
-  border-radius: 50%;
-  width: 40px; /* Width of the spinner */
-  height: 40px; /* Height of the spinner */
-  animation: spin 1s linear infinite; /* Spin animation */
-  margin: 0 auto; /* Center the loader */
-  display: none; /* Initially hidden */
+  position: relative;
+  width: 64px;
+  height: 64px;
+  background-color: rgba(0, 0, 0, 0.5);
+  transform: rotate(45deg);
+  overflow: hidden;
+  margin: 0 auto;
 }
-
-/* Spin animation */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.loader:after{
+  content: '';
+  position: absolute;
+  inset: 8px;
+  margin: auto;
+  background: #222b32;
 }
-
-/* Show loader when generating */
+.loader:before{
+  content: '';
+  position: absolute;
+  inset: -15px;
+  margin: auto;
+  background: #7C00FE;
+  animation: diamondLoader 2s linear infinite;
+}
+@keyframes diamondLoader {
+  0%  ,10% {
+    transform: translate(-64px , -64px) rotate(-45deg)
+  }
+  90% , 100% {
+    transform: translate(0px , 0px) rotate(-45deg)
+  }
+}/* Show loader when generating */
 .loader.show {
   display: block; /* Show when generating */
 }
